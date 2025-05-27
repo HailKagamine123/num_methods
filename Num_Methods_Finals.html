@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler's Explicit Method for ODEs</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+        
+        h1, h2, h3 {
+            color: var(--secondary-color);
+            margin-top: 0;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+        
+        .container:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: var(--transition);
+        }
+        
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .button-container {
+            text-align: center;
+            margin-top: 25px;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .solution-summary {
+            background-color: #e8f4fd;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        table, th, td {
+            border: 1px solid #eaeaea;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        
+        #plot {
+            width: 100%;
+            height: 450px;
+            margin-top: 25px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .explanation {
+            background-color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-top: 30px;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .explanation h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .formula {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border-left: 5px solid var(--primary-color);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .error {
+            color: var(--accent-color);
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .header-icon {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Euler's Method Solver</h1>
+    
+    <div class="container">
+        <div class="section-title">
+            <h2><span class="header-icon">📝</span>Problem Setup</h2>
+        </div>
+        
+        <div class="grid">
+            <div class="form-group">
+                <label for="equation">Differential Equation (dy/dx = f(x,y))</label>
+                <select id="equation">
+                    <option value="y">y (dy/dx = y, solution: y = Ce^x)</option>
+                    <option value="x+y">x + y (dy/dx = x + y)</option>
+                    <option value="x*y">x * y (dy/dx = x*y)</option>
+                    <option value="sin+y">sin(x) + y (dy/dx = sin(x) + y)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="y0">Initial y value (y₀)</label>
+                <input type="number" id="y0" value="1" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label for="x0">Initial x value (x₀)</label>
+                <input type="number" id="x0" value="0" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label for="xEnd">End x value</label>
+                <input type="number" id="xEnd" value="1" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label for="steps">Number of steps</label>
+                <input type="number" id="steps" value="10" min="1" max="1000">
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button id="calculate">Calculate Solution</button>
+        </div>
+    </div>
+    
+    <div class="result" id="result">
+        <div class="container">
+            <div class="section-title">
+                <h2><span class="header-icon">📊</span>Results</h2>
+            </div>
+            
+            <div class="solution-summary" id="solution"></div>
+            
+            <div id="plot"></div>
+            
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>x</th>
+                        <th>y (Approximation)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="explanation">
+        <div class="section-title">
+            <h2><span class="header-icon">📚</span>Euler's Method Explanation</h2>
+        </div>
+        
+        <p>Euler's explicit method is a fundamental numerical technique for solving initial-value problems of ordinary differential equations (ODEs) of the form:</p>
+        
+        <div class="formula">
+            dy/dx = f(x,y), y(x₀) = y₀
+        </div>
+        
+        <p>The method proceeds by taking small steps h and calculating the next approximate value using the formula:</p>
+        
+        <div class="formula">
+            y_{n+1} = y_n + h × f(x_n, y_n)
+        </div>
+        
+        <p>Where:</p>
+        <ul>
+            <li>y_{n+1} is the next approximation of y</li>
+            <li>y_n is the current approximation of y</li>
+            <li>h is the step size (calculated as (xEnd - x₀)/steps)</li>
+            <li>f(x_n, y_n) is the value of the differential equation at the current point</li>
+        </ul>
+        
+        <p>Geometrically, this method uses the slope of the tangent line at the current point to approximate the solution curve.</p>
+        
+        <p>While simple to implement, the method is first-order accurate, which means the error per step is O(h²), and the global error is O(h). For higher accuracy, consider using more advanced methods like Runge-Kutta or adaptive step size methods.</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.12.1/plotly.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('calculate').addEventListener('click', function() {
+                // Get user inputs
+                const equationSelect = document.getElementById('equation').value;
+                const x0 = parseFloat(document.getElementById('x0').value);
+                const y0 = parseFloat(document.getElementById('y0').value);
+                const xEnd = parseFloat(document.getElementById('xEnd').value);
+                const steps = parseInt(document.getElementById('steps').value);
+                
+                // Show results section
+                document.getElementById('result').style.display = 'block';
+                
+                // Define the function from the selected option
+                let f;
+                let equationText;
+                if (equationSelect === 'y') {
+                    f = (x, y) => y;
+                    equationText = "dy/dx = y";
+                } else if (equationSelect === 'x+y') {
+                    f = (x, y) => x + y;
+                    equationText = "dy/dx = x + y";
+                } else if (equationSelect === 'x*y') {
+                    f = (x, y) => x * y;
+                    equationText = "dy/dx = x × y";
+                } else if (equationSelect === 'sin+y') {
+                    f = (x, y) => Math.sin(x) + y;
+                    equationText = "dy/dx = sin(x) + y";
+                }
+                
+                // Calculate step size
+                const h = (xEnd - x0) / steps;
+                
+                // Initialize arrays for solutions
+                const xValues = [x0];
+                const yValues = [y0];
+                
+                // Apply Euler's method
+                let x = x0;
+                let y = y0;
+                
+                for (let i = 0; i < steps; i++) {
+                    const slope = f(x, y);
+                    y = y + h * slope;
+                    x = x + h;
+                    
+                    xValues.push(x);
+                    yValues.push(y);
+                }
+                
+                // Display results in table
+                const resultBody = document.getElementById('resultBody');
+                resultBody.innerHTML = '';
+                
+                for (let i = 0; i <= steps; i++) {
+                    const row = document.createElement('tr');
+                    
+                    const stepCell = document.createElement('td');
+                    stepCell.textContent = i;
+                    
+                    const xCell = document.createElement('td');
+                    xCell.textContent = xValues[i].toFixed(4);
+                    
+                    const yCell = document.createElement('td');
+                    yCell.textContent = yValues[i].toFixed(4);
+                    
+                    row.appendChild(stepCell);
+                    row.appendChild(xCell);
+                    row.appendChild(yCell);
+                    
+                    resultBody.appendChild(row);
+                }
+                
+                // Plot the results
+                const trace = {
+                    x: xValues,
+                    y: yValues,
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: 'Euler\'s Method',
+                    line: {
+                        color: '#3498db',
+                        width: 3
+                    },
+                    marker: {
+                        size: 8,
+                        color: '#2c3e50'
+                    }
+                };
+                
+                const layout = {
+                    title: {
+                        text: 'Numerical Solution Using Euler\'s Method',
+                        font: {
+                            size: 24
+                        }
+                    },
+                    xaxis: {
+                        title: 'x',
+                        gridcolor: '#e6e6e6',
+                        zerolinecolor: '#999999'
+                    },
+                    yaxis: {
+                        title: 'y',
+                        gridcolor: '#e6e6e6',
+                        zerolinecolor: '#999999'
+                    },
+                    plot_bgcolor: '#ffffff',
+                    paper_bgcolor: '#ffffff',
+                    margin: {
+                        l: 50,
+                        r: 50,
+                        b: 50,
+                        t: 80
+                    }
+                };
+                
+                const config = {
+                    responsive: true,
+                    displayModeBar: true
+                };
+                
+                Plotly.newPlot('plot', [trace], layout, config);
+                
+                // Display the solution information
+                const solution = document.getElementById('solution');
+                solution.innerHTML = `
+                    <h3>Problem Summary</h3>
+                    <p><strong>Differential Equation:</strong> ${equationText}</p>
+                    <p><strong>Initial Condition:</strong> y(${x0}) = ${y0}</p>
+                    <p><strong>Step Size (h):</strong> ${h.toFixed(6)}</p>
+                    <p><strong>Interval:</strong> [${x0}, ${xEnd}] with ${steps} steps</p>
+                    <p><strong>Final Approximation:</strong> y(${xEnd.toFixed(4)}) ≈ <span style="color: #e74c3c; font-weight: bold;">${yValues[steps].toFixed(6)}</span></p>
+                `;
+                
+                // Scroll to results
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Auto-calculate on load
+            document.getElementById('calculate').click();
+        });
+    </script>
+</body>
+</html>
